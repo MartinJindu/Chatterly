@@ -6,7 +6,7 @@ export default function Sidebar() {
     <aside
       aria-label="sidebar"
       id="sidebar"
-      className="hidden md:flex flex-col w-80 border-r bg-gray-900 border-gray-800/50 shadow-sm p-2"
+      className="hidden md:flex flex-col w-64 lg:w-80 border-r bg-gray-900 border-gray-800/50 shadow-sm p-2"
     >
       <Logo />
       <SearchInput />

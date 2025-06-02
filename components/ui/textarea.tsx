@@ -24,7 +24,7 @@ export default function Textarea() {
       rows={1}
       onInput={handleInput}
       style={{ scrollbarWidth: "none" }}
-      className="w-full resize-none overflow-auto leading-6 border rounded-lg px-3 py-2"
+      className="flex-1 w-full resize-none max-h-[10rem] overflow-auto leading-6 border rounded-lg px-3 py-2"
       placeholder="Type a message"
     />
   );

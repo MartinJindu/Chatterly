@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { FaCamera, FaDotCircle, FaPhone } from "react-icons/fa";
+import { Button } from "../ui/button";
 
 export default function TopBar() {
   return (
@@ -20,21 +21,32 @@ export default function TopBar() {
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <button className="text-teal-500 hover:text-teal-400 p-2 rounded-full hover:bg-teal-800/50">
+        <Button
+          size={"icon"}
+          disabled
+          className="text-teal-500 hover:text-teal-400 p-2 rounded-full hover:bg-teal-800/50"
+        >
           <span className="">
             <FaPhone />
           </span>
-        </button>
-        <button className="text-teal-500 hover:text-teal-400 p-2 rounded-full hover:bg-teal-800/50">
+        </Button>
+        <Button
+          size={"icon"}
+          disabled
+          className="text-teal-500 hover:text-teal-400 p-2 rounded-full hover:bg-teal-800/50"
+        >
           <span className="">
             <FaCamera />
           </span>
-        </button>
-        <button className="text-teal-500 hover:text-teal-400 p-2 rounded-full hover:bg-teal-800/50">
+        </Button>
+        {/* <Button
+          size={"icon"}
+          className="text-teal-500 hover:text-teal-400 p-2 rounded-full hover:bg-teal-800/50"
+        >
           <span className="">
             <FaDotCircle />
           </span>
-        </button>
+        </Button> */}
       </div>
     </div>
   );

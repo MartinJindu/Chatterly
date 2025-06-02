@@ -7,9 +7,12 @@ import { useParams } from "next/navigation";
 export default function Chat() {
   const { id } = useParams();
   return (
-    <div className="flex flex-col flex-1 min-h-screen overflow-hidden relative">
+    <div className="flex flex-col h-screen flex-1">
       <TopBar />
-      <ChatWindow />
+      <div className="flex-1 overflow-y-auto">
+        <ChatWindow />
+      </div>
+
       <ChatInput />
     </div>
   );

@@ -5,7 +5,7 @@ import ChatSummary from "./sidebar-components/ChatSummary";
 export default function ChatLayout() {
   return (
     <>
-      <div className="hidden md:flex md:flex-col items-center justify-center ">
+      <div className="hidden md:flex md:flex-col w-full md:h-screen my-auto items-center justify-center ">
         <Logo className="border-0" />
         <p className="font-semibold">Connect. Communicate. Collaborate.</p>
         <div className="flex items-center gap-2 mt-5">
