@@ -10,9 +10,10 @@ export default function Navbar() {
   const pathName = usePathname();
 
   //
-  // const hiddenPath = ['/chat/*']
+  const hiddenPath = ["/login", "/signup"];
   // Hide navbar when in chat page
-  const shouldHideNavbar = pathName.startsWith("/chat/");
+  const shouldHideNavbar =
+    pathName.startsWith("/chat/") || hiddenPath.includes(pathName);
 
   if (shouldHideNavbar) return null;
   return (
@@ -26,7 +27,10 @@ export default function Navbar() {
           <Logo className="border-0" />
         </div>
 
-        <Button className="bg-transparent">
+        <Button
+          size={"icon"}
+          className="bg-teal-700/30 hover:bg-teal-700/20 rounded-full cursor-pointer"
+        >
           <BsThreeDotsVertical size={40} />
         </Button>
       </div>

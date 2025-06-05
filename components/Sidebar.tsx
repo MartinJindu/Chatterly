@@ -1,7 +1,16 @@
+"use client";
 import Logo from "./sidebar-components/Logo";
 import SearchInput from "./sidebar-components/SearchInput";
 import ChatSummary from "./sidebar-components/ChatSummary";
+import { usePathname } from "next/navigation";
 export default function Sidebar() {
+  const pathName = usePathname();
+
+  const hiddenPath = ["/login", "/signup"];
+  // Hide Sidebar when in login
+  const shouldHideSidebar = hiddenPath.includes(pathName);
+
+  if (shouldHideSidebar) return null;
   return (
     <aside
       aria-label="sidebar"

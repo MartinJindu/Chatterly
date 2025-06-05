@@ -30,7 +30,7 @@ export default function ChatSummary() {
                 alt="friend-img"
                 height={30}
                 width={30}
-                className="w-12 h-12 rounded-full aspect-square bg-cover"
+                className="w-12 h-12 rounded-full aspect-square object-cover"
               />
             </div>
             <div className="flex-1 min-w-0 ">
