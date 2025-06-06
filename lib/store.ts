@@ -3,15 +3,26 @@ import { create } from "zustand";
 import createClient from "./supabase/client";
 import { redirect } from "next/navigation";
 
+type searchUser =
+  | {
+      avatar_url: string | null;
+      bio: string | null;
+      created_at: string | null;
+      id: string;
+      name: string;
+    }[]
+  | null;
+
 interface UserState {
   user: User | null;
   loading?: boolean;
   loginWithGoogle: (redirectTo?: string) => Promise<void>;
   checkSession: () => Promise<void>;
   signOut: () => Promise<void>;
+  searchUser: (query: string) => Promise<searchUser>;
 }
 
-export const authStore = create<UserState>((set) => ({
+export const store = create<UserState>((set) => ({
   user: null,
   loading: false,
 
@@ -56,5 +67,19 @@ export const authStore = create<UserState>((set) => ({
     } = await supabase.auth.getSession();
 
     set({ user: session?.user || null, loading: false });
+  },
+  searchUser: async (query) => {
+    const supabase = createClient();
+
+    // to get users where the query contains user name in db
+    const { error, data } = await supabase
+      .from("profiles")
+      .select("*")
+      .ilike("name", `%${query}%`);
+
+    if (error) {
+      console.log(error);
+    }
+    return data;
   },
 }));

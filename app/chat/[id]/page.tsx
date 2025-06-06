@@ -17,7 +17,7 @@ export default function Chat() {
     bio: "Fullstack developer who loves building sleek UI with Tailwind and Next.js.",
   };
   return (
-    <div className="flex flex-col h-screen flex-1 relative">
+    <div className="flex flex-col h-screen relative md:rounded-lg bg-teal-900/20 ">
       <TopBar showModal={showModal} setShowModal={setShowModal} />
       <div className="flex-1 overflow-y-auto">
         <ChatWindow />

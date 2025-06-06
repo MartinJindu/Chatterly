@@ -13,19 +13,17 @@ export async function GET(request: Request) {
     // if "next" is not a relative URL, use the default
     next = "/";
   }
-  console.log("next", next);
 
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
       const forwardedHost = request.headers.get("x-forwarded-host"); // original origin before load balancer
-      console.log("forward host", forwardedHost);
 
       const isLocalEnv = process.env.NODE_ENV === "development";
       if (isLocalEnv) {
         // we can be sure that there is no load balancer in between, so no need to watch for X-Forwarded-Host
-        return NextResponse.redirect(`${origin}${next}`);
+        return NextResponse.redirect(`${origin}/setup`);
       } else if (forwardedHost) {
         return NextResponse.redirect(`https://${forwardedHost}${next}`);
       } else {

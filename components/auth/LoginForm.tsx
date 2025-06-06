@@ -1,11 +1,11 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { authStore } from "@/lib/authStore";
+import { store } from "@/lib/store";
 import { useSearchParams } from "next/navigation";
 
 export default function LoginForm() {
-  const { loginWithGoogle } = authStore();
+  const { loginWithGoogle } = store();
   const searchParams = useSearchParams();
 
   const next = searchParams.get("next") || "/";
