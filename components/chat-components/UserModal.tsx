@@ -4,15 +4,12 @@ import { X } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef } from "react";
 import { Button } from "../ui/button";
+import { RecipientProps } from "@/app/chat/[id]/page";
 
 interface UserModalProps {
   isOpen: boolean;
   onClose: () => void;
-  user: {
-    name: string;
-    avatar: string;
-    bio: string;
-  };
+  user: RecipientProps;
 }
 
 export default function UserModal({ isOpen, onClose, user }: UserModalProps) {
@@ -52,14 +49,17 @@ export default function UserModal({ isOpen, onClose, user }: UserModalProps) {
         </Button>
         <div className="flex flex-col items-center text-center space-y-4">
           <Image
-            src={user.avatar}
-            alt={user.name}
+            src={
+              (user?.avatar_url as string) ||
+              "https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff"
+            }
+            alt={user?.name!!}
             width={80}
             height={80}
             className="rounded-full object-cover"
           />
-          <h2 className="text-xl font-semibold">{user.name}</h2>
-          <p className="text-sm text-gray-300">{user.bio}</p>
+          <h2 className="text-xl font-semibold">{user?.name}</h2>
+          <p className="text-sm text-gray-300">{user?.bio}</p>
         </div>
       </div>
     </div>

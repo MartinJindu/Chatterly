@@ -6,12 +6,16 @@ import { store } from "@/lib/store";
 import { useEffect } from "react";
 
 export default function ChatLayout() {
-  const { user, checkSession, signOut } = store();
+  const { user, checkSession, signOut, fetchKeys } = store();
 
   useEffect(() => {
     checkSession();
   }, []);
-  console.log(user?.user_metadata);
+
+  useEffect(() => {
+    fetchKeys();
+  }, []);
+  // console.log(user?.user_metadata);
 
   return (
     <>

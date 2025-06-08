@@ -1,197 +1,248 @@
+"use client";
+
+import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
+import { useAppStore } from "@/contextStore/AppContext";
 
-export default function ChatWindow() {
+interface Message {
+  id: string;
+  sender_id: string | null;
+  recipient_id: string | null;
+  message: string;
+  created_at: string | null;
+}
+
+interface Profile {
+  id: string;
+  name: string;
+  avatar_url: string | null;
+}
+
+const ChatWindow = ({ otherUserId }: { otherUserId: string }) => {
+  const { user, loading: contextLoading, supabase } = useAppStore();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [profiles, setProfiles] = useState<{ [key: string]: Profile }>({});
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Log user and otherUserId for debugging
+  // useEffect(() => {
+  //   console.log("User:", user?.id, "OtherUserId:", otherUserId);
+  // }, [user, otherUserId]);
+
+  // Fetch profiles
+  useEffect(() => {
+    const fetchProfiles = async () => {
+      if (!user || !otherUserId) return;
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, name, avatar_url")
+        .in("id", [user.id, otherUserId]);
+
+      if (error) {
+        console.error("Error fetching profiles:", error);
+        return;
+      }
+
+      const profileMap = data.reduce((acc, profile) => {
+        acc[profile.id] = profile;
+        return acc;
+      }, {} as { [key: string]: Profile });
+
+      setProfiles(profileMap);
+      // console.log("Profiles fetched:", profileMap);
+    };
+
+    fetchProfiles();
+  }, [user, otherUserId, supabase]);
+
+  // Fetch messages
+  useEffect(() => {
+    const loadMessages = async () => {
+      if (!user || !otherUserId) return;
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const { data, error } = await supabase
+          .from("messages")
+          .select("*")
+          .or(
+            `and(recipient_id.eq.${user.id},sender_id.eq.${otherUserId}),and(sender_id.eq.${user.id},recipient_id.eq.${otherUserId})`
+          )
+          .order("created_at", { ascending: true });
+
+        if (error) {
+          console.error("Error fetching messages:", error);
+          setError("Failed to fetch messages");
+          return;
+        }
+
+        // console.log("Fetched messages:", data);
+        setMessages(data || []);
+      } catch (err) {
+        console.error("Error in loadMessages:", err);
+        setError("An unexpected error occurred");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user && otherUserId) {
+      loadMessages();
+    }
+  }, [user, otherUserId, supabase]);
+
+  // Real-time subscription with client-side filtering
+  useEffect(() => {
+    if (!user || !otherUserId) return;
+
+    const channelName = `messages:${user.id}:${otherUserId}`;
+    // console.log("Setting up subscription for channel:", channelName);
+
+    const subscription = supabase
+      .channel(channelName)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+        },
+        (payload) => {
+          const newMessage = payload.new as Message;
+          // console.log("New message payload:", newMessage);
+
+          if (
+            (newMessage.recipient_id === user.id &&
+              newMessage.sender_id === otherUserId) ||
+            (newMessage.sender_id === user.id &&
+              newMessage.recipient_id === otherUserId)
+          ) {
+            setMessages((prev) => {
+              if (prev.some((msg) => msg.id === newMessage.id)) {
+                // console.log("Duplicate message ignored:", newMessage.id);
+                return prev;
+              }
+              return [...prev, newMessage].sort(
+                (a, b) =>
+                  new Date(a.created_at!).getTime() -
+                  new Date(b.created_at!).getTime()
+              );
+            });
+          } else {
+            console.log(
+              "Message ignored (not part of this conversation):",
+              newMessage
+            );
+          }
+        }
+      )
+      .subscribe((status) => {
+        // console.log("Subscription status:", status);
+        if (status === "SUBSCRIBED") {
+          // console.log("Successfully subscribed to:", channelName);
+        } else if (status === "CLOSED" || status === "CHANNEL_ERROR") {
+          console.error(
+            "Subscription failed for:",
+            channelName,
+            "Status:",
+            status
+          );
+        }
+      });
+
+    return () => {
+      // console.log("Unsubscribing from channel:", channelName);
+      subscription.unsubscribe();
+    };
+  }, [user, otherUserId, supabase]);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  if (contextLoading || loading) {
+    return <div className="p-4 text-teal-100">Loading messages...</div>;
+  }
+
+  if (error) {
+    return <div className="p-4 text-red-500">Error: {error}</div>;
+  }
+
   return (
-    <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-teal-700  scrollbar-track-teal-900/50  p-4 space-y-4 scroll-smooth">
-      <div aria-label="sent message" className="flex items-end gap-2.5">
-        <Image
-          src={
-            "https://lh3.googleusercontent.com/aida-public/AB6AXuDYe-C-ulhMzH1ZxQw7b86sEX9KFcsDj5CFfsh9urgGj_WAJ2PPjfIEaiTdMJevhEGKlIHnlEcq1o0gQ-fph8MK8_JsH2XYpxjxFTLJkcgYsxQTieN7-h7cdaxibgCizjPkiTQDi1bgjpp0Q9vAKWLmt72CbOvlHaCkhfP_8QABjvkBbRPJE2vFQxLNc7OTScBVwqE8BagRLBf09E0mo_97_b6NlNpxOuZhRLTo9CLbToJSWQkQaZz6zVbfxdsrhHHxu1OkZyyunEE"
-          }
-          alt="person 1"
-          height={12}
-          width={12}
-          className="w-6 h-6 rounded-full aspect-square bg-cover shrink-0"
-        />
-        <div className="flex flex-col  gap-1 max-w-[calc(100%-3.5rem)]">
-          <div className="bg-gray-700 p-3 rounded-lg shadow-sm">
-            <p className="text-sm ">
-              Hey Sophia, how are you? Lorem ipsum dolor sit amet consectetur
-              adipisicing elit. Dolores ullam odio minima, pariatur at inventore
-              nihil iste expedita officiis quae repellat eius veritatis, porro
-              commodi. Consectetur possimus nisi aliquam ipsam. Lorem ipsum
-              dolor, sit amet consectetur adipisicing elit. Saepe, vero adipisci
-              tempora exercitationem ex animi molestias! Sit velit Lorem ipsum
-              dolor, sit amet consectetur adipisicing elit. Cupiditate,
-              dignissimos? Sed repudiandae in aliquam asperiores unde ad? Cumque
-              cupiditate architecto laborum facere, adipisci hic tempore!
-              Voluptatum pariatur qui numquam commodi. Lorem ipsum dolor, sit
-              amet consectetur adipisicing elit. Quisquam laboriosam quam
-              mollitia reprehenderit non facilis magnam, ut cumque nisi omnis
-              recusandae deserunt quos asperiores inventore error doloribus
-              accusantium, expedita debitis.
-            </p>
-          </div>
-          <p className="text-xs  self-start">Liam • 10:15 AM</p>
-        </div>
-      </div>
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-teal-700 scrollbar-track-teal-900/50 p-4 space-y-4 scroll-smooth">
+        {messages.length === 0 ? (
+          <p className="text-teal-100">No messages in this chat</p>
+        ) : (
+          messages.map((msg) => {
+            const isSender = msg.sender_id === otherUserId;
+            const profile = profiles[msg.sender_id!] || {
+              name: "Unknown",
+              avatar_url: null,
+            };
 
-      <div
-        aria-label="received message"
-        className="flex items-end gap-2.5 justify-end"
-      >
-        <div className="flex flex-col gap-1 max-w-[calc(100%-3.5rem)]">
-          <div className="bg-gray-700 p-3 rounded-lg shadow-sm">
-            <p className="text-sm ">
-              I'm doing great, thanks! How about you? Lorem, ipsum dolor sit
-              amet consectetur adipisicing elit. Dicta, repellendus architecto.
-              Aliquid expedita, eius voluptatum fugit excepturi perferendis sit
-              quasi reiciendis tenetur pariatur sequi? Nam asperiores facere
-              consectetur ipsum accusamus. Lorem ipsum dolor sit amet Lorem
-              ipsum dolor sit amet consectetur adipisicing elit. Dolores fugiat,
-              officia porro commodi at incidunt accusamus adipisci ipsum
-              explicabo. Laboriosam accusamus autem ipsum, iste sequi quam
-              possimus ab incidunt cum.
-            </p>
-          </div>
-          <p className="text-xs  self-end">Sophia • 10:16 AM</p>
-        </div>
-        <Image
-          src={
-            "https://lh3.googleusercontent.com/aida-public/AB6AXuCLzTAooH7Gsg8r1AZsXwPAXhWJmpPY1bHw8A2JGELlVSKuEUTXjBtWD_OFJdNQOBIzo3QB0cRzSkk21z_LBGurrXGxBKipi1BehYm_uaVJCsSxMw_EtW-c1Zsmzha06dal9GEaEQqJGQ_dJEm86xM8vpbXYfs6_aE2wH3FAWVtBKPV0qhpDIaXE8pd8la-_Uhf_YVllhgc6BODzr1M7e4HdzBqDTVHoOwMc9yqTjCdeGXD6sikxHYipfy-rBwHr74IsenN0_nJ9Qk"
-          }
-          alt="person 2"
-          height={12}
-          width={12}
-          className="w-6 h-6 rounded-full aspect-square bg-cover shrink-0"
-        />
-      </div>
-      <div aria-label="sent message" className="flex items-end gap-2.5">
-        <Image
-          src={
-            "https://lh3.googleusercontent.com/aida-public/AB6AXuDYe-C-ulhMzH1ZxQw7b86sEX9KFcsDj5CFfsh9urgGj_WAJ2PPjfIEaiTdMJevhEGKlIHnlEcq1o0gQ-fph8MK8_JsH2XYpxjxFTLJkcgYsxQTieN7-h7cdaxibgCizjPkiTQDi1bgjpp0Q9vAKWLmt72CbOvlHaCkhfP_8QABjvkBbRPJE2vFQxLNc7OTScBVwqE8BagRLBf09E0mo_97_b6NlNpxOuZhRLTo9CLbToJSWQkQaZz6zVbfxdsrhHHxu1OkZyyunEE"
-          }
-          alt="person 1"
-          height={12}
-          width={12}
-          className="w-6 h-6 rounded-full aspect-square bg-cover shrink-0"
-        />
-        <div className="flex flex-col  gap-1 max-w-[calc(100%-3.5rem)]">
-          <div className="bg-gray-700 p-3 rounded-lg shadow-sm">
-            <p className="text-sm ">
-              Hey Sophia, how are you? Lorem ipsum dolor sit amet consectetur
-              adipisicing elit. Dolores ullam odio minima, pariatur at inventore
-              nihil iste expedita officiis quae repellat eius veritatis, porro
-              commodi. Consectetur possimus nisi aliquam ipsam. Lorem ipsum
-              dolor, sit amet consectetur adipisicing elit. Saepe, vero adipisci
-              tempora exercitationem ex animi molestias! Sit velit Lorem ipsum
-              dolor, sit amet consectetur adipisicing elit. Cupiditate,
-              dignissimos? Sed repudiandae in aliquam asperiores unde ad? Cumque
-              cupiditate architecto laborum facere, adipisci hic tempore!
-              Voluptatum pariatur qui numquam commodi. Lorem ipsum dolor, sit
-              amet consectetur adipisicing elit. Quisquam laboriosam quam
-              mollitia reprehenderit non facilis magnam, ut cumque nisi omnis
-              recusandae deserunt quos asperiores inventore error doloribus
-              accusantium, expedita debitis.
-            </p>
-          </div>
-          <p className="text-xs  self-start">Liam • 10:15 AM</p>
-        </div>
-      </div>
-
-      <div
-        aria-label="received message"
-        className="flex items-end gap-2.5 justify-end"
-      >
-        <div className="flex flex-col gap-1 max-w-[calc(100%-3.5rem)]">
-          <div className="bg-gray-700 p-3 rounded-lg shadow-sm">
-            <p className="text-sm ">
-              I'm doing great, thanks! How about you? Lorem, ipsum dolor sit
-              amet consectetur adipisicing elit. Dicta, repellendus architecto.
-              Aliquid expedita, eius voluptatum fugit excepturi perferendis sit
-              quasi reiciendis tenetur pariatur sequi? Nam asperiores facere
-              consectetur ipsum accusamus. Lorem ipsum dolor sit amet Lorem
-              ipsum dolor sit amet consectetur adipisicing elit. Dolores fugiat,
-              officia porro commodi at incidunt accusamus adipisci ipsum
-              explicabo. Laboriosam accusamus autem ipsum, iste sequi quam
-              possimus ab incidunt cum.
-            </p>
-          </div>
-          <p className="text-xs  self-end">Sophia • 10:16 AM</p>
-        </div>
-        <Image
-          src={
-            "https://lh3.googleusercontent.com/aida-public/AB6AXuCLzTAooH7Gsg8r1AZsXwPAXhWJmpPY1bHw8A2JGELlVSKuEUTXjBtWD_OFJdNQOBIzo3QB0cRzSkk21z_LBGurrXGxBKipi1BehYm_uaVJCsSxMw_EtW-c1Zsmzha06dal9GEaEQqJGQ_dJEm86xM8vpbXYfs6_aE2wH3FAWVtBKPV0qhpDIaXE8pd8la-_Uhf_YVllhgc6BODzr1M7e4HdzBqDTVHoOwMc9yqTjCdeGXD6sikxHYipfy-rBwHr74IsenN0_nJ9Qk"
-          }
-          alt="person 2"
-          height={12}
-          width={12}
-          className="w-6 h-6 rounded-full aspect-square bg-cover shrink-0"
-        />
-      </div>
-      <div aria-label="sent message" className="flex items-end gap-2.5">
-        <Image
-          src={
-            "https://lh3.googleusercontent.com/aida-public/AB6AXuDYe-C-ulhMzH1ZxQw7b86sEX9KFcsDj5CFfsh9urgGj_WAJ2PPjfIEaiTdMJevhEGKlIHnlEcq1o0gQ-fph8MK8_JsH2XYpxjxFTLJkcgYsxQTieN7-h7cdaxibgCizjPkiTQDi1bgjpp0Q9vAKWLmt72CbOvlHaCkhfP_8QABjvkBbRPJE2vFQxLNc7OTScBVwqE8BagRLBf09E0mo_97_b6NlNpxOuZhRLTo9CLbToJSWQkQaZz6zVbfxdsrhHHxu1OkZyyunEE"
-          }
-          alt="person 1"
-          height={12}
-          width={12}
-          className="w-6 h-6 rounded-full aspect-square bg-cover shrink-0"
-        />
-        <div className="flex flex-col  gap-1 max-w-[calc(100%-3.5rem)]">
-          <div className="bg-gray-700 p-3 rounded-lg shadow-sm">
-            <p className="text-sm ">
-              Hey Sophia, how are you? Lorem ipsum dolor sit amet consectetur
-              adipisicing elit. Dolores ullam odio minima, pariatur at inventore
-              nihil iste expedita officiis quae repellat eius veritatis, porro
-              commodi. Consectetur possimus nisi aliquam ipsam. Lorem ipsum
-              dolor, sit amet consectetur adipisicing elit. Saepe, vero adipisci
-              tempora exercitationem ex animi molestias! Sit velit Lorem ipsum
-              dolor, sit amet consectetur adipisicing elit. Cupiditate,
-              dignissimos? Sed repudiandae in aliquam asperiores unde ad? Cumque
-              cupiditate architecto laborum facere, adipisci hic tempore!
-              Voluptatum pariatur qui numquam commodi. Lorem ipsum dolor, sit
-              amet consectetur adipisicing elit. Quisquam laboriosam quam
-              mollitia reprehenderit non facilis magnam, ut cumque nisi omnis
-              recusandae deserunt quos asperiores inventore error doloribus
-              accusantium, expedita debitis.
-            </p>
-          </div>
-          <p className="text-xs  self-start">Liam • 10:15 AM</p>
-        </div>
-      </div>
-
-      <div
-        aria-label="received message"
-        className="flex items-end gap-2.5 justify-end"
-      >
-        <div className="flex flex-col gap-1 max-w-[calc(100%-3.5rem)]">
-          <div className="bg-gray-700 p-3 rounded-lg shadow-sm">
-            <p className="text-sm ">
-              I'm doing great, thanks! How about you? Lorem, ipsum dolor sit
-              amet consectetur adipisicing elit. Dicta, repellendus architecto.
-              Aliquid expedita, eius voluptatum fugit excepturi perferendis sit
-              quasi reiciendis tenetur pariatur sequi? Nam asperiores facere
-              consectetur ipsum accusamus. Lorem ipsum dolor sit amet Lorem
-              ipsum dolor sit amet consectetur adipisicing elit. Dolores fugiat,
-              officia porro commodi at incidunt accusamus adipisci ipsum
-              explicabo. Laboriosam accusamus autem ipsum, iste sequi quam
-              possimus ab incidunt cum.
-            </p>
-          </div>
-          <p className="text-xs  self-end">Sophia • 10:16 AM</p>
-        </div>
-        <Image
-          src={
-            "https://lh3.googleusercontent.com/aida-public/AB6AXuCLzTAooH7Gsg8r1AZsXwPAXhWJmpPY1bHw8A2JGELlVSKuEUTXjBtWD_OFJdNQOBIzo3QB0cRzSkk21z_LBGurrXGxBKipi1BehYm_uaVJCsSxMw_EtW-c1Zsmzha06dal9GEaEQqJGQ_dJEm86xM8vpbXYfs6_aE2wH3FAWVtBKPV0qhpDIaXE8pd8la-_Uhf_YVllhgc6BODzr1M7e4HdzBqDTVHoOwMc9yqTjCdeGXD6sikxHYipfy-rBwHr74IsenN0_nJ9Qk"
-          }
-          alt="person 2"
-          height={12}
-          width={12}
-          className="w-6 h-6 rounded-full aspect-square bg-cover shrink-0"
-        />
+            return (
+              <div
+                key={msg.id}
+                aria-label={isSender ? "received message" : "sent message"}
+                className={`flex items-end gap-2.5 ${
+                  isSender ? "justify-start" : "justify-end"
+                }`}
+              >
+                {isSender && (
+                  <Image
+                    src={profile.avatar_url || "/default-avatar.png"}
+                    alt={profile.name}
+                    height={24}
+                    width={24}
+                    className="w-6 h-6 rounded-full aspect-square bg-cover shrink-0"
+                  />
+                )}
+                <div className="flex flex-col gap-1 max-w-[calc(100%-3.5rem)]">
+                  <div
+                    className={`p-3 rounded-lg shadow-sm ${
+                      isSender ? "bg-teal-800" : "bg-gray-700"
+                    }`}
+                  >
+                    <p className="text-sm text-teal-100">{msg.message}</p>
+                  </div>
+                  <p
+                    className={`text-xs text-teal-300 ${
+                      isSender ? "self-start" : "self-end"
+                    }`}
+                  >
+                    {profile.name} •{" "}
+                    {new Date(msg.created_at!).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+                {!isSender && (
+                  <Image
+                    src={
+                      profiles[user?.id!]?.avatar_url || "/default-avatar.png"
+                    }
+                    alt={profiles[user?.id!]?.name || "You"}
+                    height={24}
+                    width={24}
+                    className="w-6 h-6 rounded-full aspect-square bg-cover shrink-0"
+                  />
+                )}
+              </div>
+            );
+          })
+        )}
+        <div ref={messagesEndRef} />
       </div>
     </div>
   );
-}
+};
+
+export default ChatWindow;

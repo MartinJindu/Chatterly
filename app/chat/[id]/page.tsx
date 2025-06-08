@@ -3,12 +3,48 @@ import ChatInput from "@/components/chat-components/ChatInput";
 import ChatWindow from "@/components/chat-components/ChatWindow";
 import TopBar from "@/components/chat-components/TopBar";
 import UserModal from "@/components/chat-components/UserModal";
+import { useAppStore } from "@/contextStore/AppContext";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+export type RecipientProps = {
+  avatar_url: string | null;
+  name: string;
+  bio: string | null;
+} | null;
 
 export default function Chat() {
+  const [recipientData, setRecipientData] = useState<RecipientProps | null>(
+    null
+  );
+  const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const { id } = useParams();
+  const { user: storeUser, supabase } = useAppStore();
+  const { id: recipientId } = useParams();
+
+  const fetchOtherUserDetails = async () => {
+    setLoading(true);
+    const { error, data } = await supabase
+      .from("profiles")
+      .select("avatar_url, name, bio")
+      .eq("id", recipientId as string)
+      .single();
+
+    console.log(data?.name);
+
+    if (error) {
+      console.log("error", error);
+      setLoading(false);
+    }
+
+    setRecipientData(data);
+    setLoading(false);
+  };
+  // console.log(recipientData);
+
+  useEffect(() => {
+    fetchOtherUserDetails();
+  }, [recipientId]);
 
   const user = {
     name: "Sophia Liam",
@@ -18,16 +54,24 @@ export default function Chat() {
   };
   return (
     <div className="flex flex-col h-screen relative md:rounded-lg bg-teal-900/20 ">
-      <TopBar showModal={showModal} setShowModal={setShowModal} />
+      <TopBar
+        loading={loading}
+        recipientData={recipientData}
+        showModal={showModal}
+        setShowModal={setShowModal}
+      />
       <div className="flex-1 overflow-y-auto">
-        <ChatWindow />
+        <ChatWindow otherUserId={recipientId as string} />
       </div>
 
-      <ChatInput />
+      <ChatInput
+        userId={storeUser?.id as string}
+        recipientId={recipientId as string}
+      />
       <UserModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        user={user}
+        user={recipientData}
       />
     </div>
   );

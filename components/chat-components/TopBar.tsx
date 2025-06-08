@@ -1,14 +1,25 @@
+"use client";
+
 import Image from "next/image";
 import { FaCamera, FaDotCircle, FaPhone } from "react-icons/fa";
 import { Button } from "../ui/button";
+import { store } from "@/lib/store";
+import { RecipientProps } from "@/app/chat/[id]/page";
 
 export default function TopBar({
   showModal,
   setShowModal,
+  recipientData,
+  loading,
 }: {
   setShowModal: (e: boolean) => void;
   showModal: boolean;
+  loading: boolean;
+  recipientData: RecipientProps;
 }) {
+  if (loading) {
+    return <p>loading..</p>;
+  }
   return (
     <div className="flex items-center justify-between p-3 pt-5 border-b border-teal-700 h-[72px] ">
       <div
@@ -17,7 +28,8 @@ export default function TopBar({
       >
         <Image
           src={
-            "https://lh3.googleusercontent.com/aida-public/AB6AXuDYe-C-ulhMzH1ZxQw7b86sEX9KFcsDj5CFfsh9urgGj_WAJ2PPjfIEaiTdMJevhEGKlIHnlEcq1o0gQ-fph8MK8_JsH2XYpxjxFTLJkcgYsxQTieN7-h7cdaxibgCizjPkiTQDi1bgjpp0Q9vAKWLmt72CbOvlHaCkhfP_8QABjvkBbRPJE2vFQxLNc7OTScBVwqE8BagRLBf09E0mo_97_b6NlNpxOuZhRLTo9CLbToJSWQkQaZz6zVbfxdsrhHHxu1OkZyyunEE"
+            recipientData?.avatar_url ||
+            "https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff"
           }
           alt="friend-img"
           height={30}
@@ -25,7 +37,7 @@ export default function TopBar({
           className="w-12 h-12 rounded-full aspect-square object-cover"
         />
         <div>
-          <p className=" text-lg font-semibold">Liam</p>
+          <p className=" text-lg font-semibold">{recipientData?.name}</p>
           <p className=" text-xs">Online</p>
         </div>
       </div>
