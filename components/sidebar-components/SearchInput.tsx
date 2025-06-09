@@ -3,9 +3,10 @@
 import { FaSearch } from "react-icons/fa";
 import { Input } from "../ui/input";
 import { cn } from "@/lib/utils";
-import { store } from "@/lib/store";
+
 import { useState } from "react";
 import SearchModal from "./SearchModal";
+import { useAppStore } from "@/contextStore/AppContext";
 
 type Props = {
   inputClassName?: string;
@@ -15,7 +16,7 @@ export default function SearchInput({ inputClassName }: Props) {
   const [name, setName] = useState<string>("");
   const [modalData, setModalData] = useState<any[] | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const { searchUser } = store();
+  const { searchUser } = useAppStore();
 
   const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!name.trim()) return;

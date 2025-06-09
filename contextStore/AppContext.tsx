@@ -102,12 +102,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const { error, data } = await supabase
       .from("profiles")
       .select("*")
-      .ilike("name", `%${query}%`);
+      .ilike("name", `%${query}%`)
+      .filter("id", "neq", user?.id || ""); // to not return logged in user
 
     if (error) {
       console.log(error);
       return null;
     }
+
+    // const filtered = data.filter(profile => profile.id !== user?.id)
     return data;
   };
 
