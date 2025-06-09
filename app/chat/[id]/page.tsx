@@ -1,4 +1,5 @@
 "use client";
+
 import ChatInput from "@/components/chat-components/ChatInput";
 import ChatWindow from "@/components/chat-components/ChatWindow";
 import TopBar from "@/components/chat-components/TopBar";
@@ -9,19 +10,18 @@ import { useEffect, useState } from "react";
 
 export type RecipientProps = {
   avatar_url: string | null;
-  name: string;
+  name: string | null;
   bio: string | null;
 } | null;
 
 export default function Chat() {
-  const [recipientData, setRecipientData] = useState<RecipientProps | null>(
-    null
-  );
-  const [loading, setLoading] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const { user: storeUser, supabase } = useAppStore();
+  const [recipientData, setRecipientData] = useState<RecipientProps>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const { user: storeUser, supabase, isUserOnline } = useAppStore();
   const { id: recipientId } = useParams();
 
+  // Fetch recipient details
   const fetchOtherUserDetails = async () => {
     setLoading(true);
     const { error, data } = await supabase
@@ -30,40 +30,37 @@ export default function Chat() {
       .eq("id", recipientId as string)
       .single();
 
-    console.log(data?.name);
-
     if (error) {
-      console.log("error", error);
+      console.error("Failed to fetch profile:", error);
       setLoading(false);
+      return;
     }
 
     setRecipientData(data);
+    // console.log("Recipient name:", data?.name);
     setLoading(false);
   };
-  // console.log(recipientData);
+
+  const isRecipientOnline = recipientId
+    ? isUserOnline(recipientId as string)
+    : false;
 
   useEffect(() => {
     fetchOtherUserDetails();
   }, [recipientId]);
 
-  const user = {
-    name: "Sophia Liam",
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDYe-C-ulhMzH1ZxQw7b86sEX9KFcsDj5CFfsh9urgGj_WAJ2PPjfIEaiTdMJevhEGKlIHnlEcq1o0gQ-fph8MK8_JsH2XYpxjxFTLJkcgYsxQTieN7-h7cdaxibgCizjPkiTQDi1bgjpp0Q9vAKWLmt72CbOvlHaCkhfP_8QABjvkBbRPJE2vFQxLNc7OTScBVwqE8BagRLBf09E0mo_97_b6NlNpxOuZhRLTo9CLbToJSWQkQaZz6zVbfxdsrhHHxu1OkZyyunEE",
-    bio: "Fullstack developer who loves building sleek UI with Tailwind and Next.js.",
-  };
   return (
-    <div className="flex flex-col h-screen relative md:rounded-lg bg-teal-900/20 ">
+    <div className="flex flex-col h-screen relative md:rounded-lg bg-teal-900/20">
       <TopBar
         loading={loading}
         recipientData={recipientData}
         showModal={showModal}
         setShowModal={setShowModal}
+        isRecipientOnline={isRecipientOnline}
       />
       <div className="flex-1 overflow-y-auto">
         <ChatWindow otherUserId={recipientId as string} />
       </div>
-
       <ChatInput
         userId={storeUser?.id as string}
         recipientId={recipientId as string}

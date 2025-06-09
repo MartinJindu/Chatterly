@@ -7,7 +7,7 @@ import {
   useEffect,
   useMemo,
 } from "react";
-import { SupabaseClient, User } from "@supabase/supabase-js";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 import sodium from "libsodium-wrappers";
 import createClient from "@/lib/supabase/client";
@@ -29,6 +29,11 @@ type UserKey = {
   privateKey: Uint8Array;
 };
 
+type PresenceState = Record<
+  string,
+  { userId: string; online: boolean; presence_ref: string }[]
+>;
+
 interface StoreState {
   user: User | null;
   loading: boolean;
@@ -40,6 +45,7 @@ interface StoreState {
   searchUser: (query: string) => Promise<SearchUser>;
   sendMessage: (receiverId: string, content: string) => Promise<void>;
   // fetchKeys: () => Promise<void>;
+  isUserOnline: (userId: string) => boolean;
 }
 
 // Create context
@@ -49,6 +55,7 @@ const AppContext = createContext<StoreState | undefined>(undefined);
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [presenceState, setPresenceState] = useState<PresenceState>({});
   const [keys, setKeys] = useState<UserKey | null>(null);
 
   const supabase = createClient();
@@ -57,6 +64,63 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     checkSession();
   }, []);
+
+  // Set up presence tracking
+  useEffect(() => {
+    if (!user || !supabase) return;
+
+    // create presence channel
+    const presenceChannel = supabase.channel("online-users", {
+      config: {
+        presence: {
+          key: user.id, // unique for each user
+        },
+      },
+    });
+
+    // Define the current user's presence data
+    const userStatus = { userId: user.id, online: true };
+
+    presenceChannel
+      .on("presence", { event: "sync" }, () => {
+        const state = presenceChannel.presenceState();
+        // console.log("Presence sync:", state);
+        setPresenceState(state as PresenceState);
+      })
+      // When someone joins (comes online)
+      .on("presence", { event: "join" }, ({ key: userId, newPresences }) => {
+        // console.log("User joined:", userId, newPresences);
+        setPresenceState((prev: any) => ({
+          ...prev,
+          [userId]: newPresences,
+        }));
+      })
+      // When someone leaves (goes offline)
+      .on("presence", { event: "leave" }, ({ key: userId, leftPresences }) => {
+        // console.log("User left:", userId, leftPresences);
+        setPresenceState((prev: any) => {
+          const newState = { ...prev };
+          delete newState[userId];
+          return newState;
+        });
+      })
+      // Subscribe and track the current user's presence
+      .subscribe(async (status) => {
+        // console.log("Presence subscription status:", status);
+        if (status === "SUBSCRIBED") {
+          await presenceChannel.track(userStatus);
+          // console.log("Tracking user status:", userStatus);
+        }
+      });
+
+    // Clean up when component unmounts or dependencies change
+    return () => {
+      // console.log("Unsubscribing from presence channel");
+      presenceChannel.untrack().then(() => {
+        presenceChannel.unsubscribe();
+      });
+    };
+  }, [user, supabase]);
 
   const checkSession = async () => {
     setLoading(true);
@@ -116,6 +180,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const sendMessage = async (receiverId: string, content: string) => {};
 
+  // to get users that are online
+  const isUserOnline = (userId: string): boolean => {
+    const userPresence = presenceState[userId];
+    return !!userPresence && userPresence[0]?.online;
+  };
+
   // const fetchKeys = async () => {
   //   if (!user || keys) return;
 
@@ -163,6 +233,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       searchUser,
       sendMessage,
       // fetchKeys,
+      isUserOnline,
     }),
     [
       user,
@@ -173,6 +244,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       checkSession,
       searchUser,
       // fetchKeys,
+      isUserOnline,
     ]
   );
 
