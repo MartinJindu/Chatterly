@@ -141,19 +141,7 @@ const ChatWindow = ({ otherUserId }: { otherUserId: string }) => {
           }
         }
       )
-      .subscribe((status) => {
-        // console.log("Subscription status:", status);
-        if (status === "SUBSCRIBED") {
-          // console.log("Successfully subscribed to:", channelName);
-        } else if (status === "CLOSED" || status === "CHANNEL_ERROR") {
-          console.error(
-            "Subscription failed for:",
-            channelName,
-            "Status:",
-            status
-          );
-        }
-      });
+      .subscribe();
 
     return () => {
       // console.log("Unsubscribing from channel:", channelName);
@@ -227,9 +215,10 @@ const ChatWindow = ({ otherUserId }: { otherUserId: string }) => {
                 {!isSender && (
                   <Image
                     src={
-                      profiles[user?.id!]?.avatar_url || "/default-avatar.png"
+                      profiles[user?.id as string]?.avatar_url ||
+                      "/default-avatar.png"
                     }
-                    alt={profiles[user?.id!]?.name || "You"}
+                    alt={profiles[user?.id as string]?.name || "You"}
                     height={24}
                     width={24}
                     className="w-6 h-6 rounded-full aspect-square bg-cover shrink-0"

@@ -53,7 +53,7 @@ export default function UserModal({ isOpen, onClose, user }: UserModalProps) {
               (user?.avatar_url as string) ||
               "https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff"
             }
-            alt={user?.name!!}
+            alt={user?.name as string}
             width={80}
             height={80}
             className="rounded-full object-cover"

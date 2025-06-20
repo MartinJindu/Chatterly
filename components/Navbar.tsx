@@ -1,13 +1,15 @@
 "use client";
 
-import { BsThreeDotsVertical } from "react-icons/bs";
+import { PowerIcon } from "lucide-react";
 import Logo from "./sidebar-components/Logo";
 import { Button } from "./ui/button";
 import SearchInput from "./sidebar-components/SearchInput";
 import { usePathname } from "next/navigation";
+import { useAppStore } from "@/contextStore/AppContext";
 
 export default function Navbar() {
   const pathName = usePathname();
+  const { signOut } = useAppStore();
 
   //
   const hiddenPath = ["/login", "/signup"];
@@ -30,8 +32,9 @@ export default function Navbar() {
         <Button
           size={"icon"}
           className="bg-teal-700/30 hover:bg-teal-700/20 rounded-full cursor-pointer"
+          onClick={signOut}
         >
-          <BsThreeDotsVertical size={40} />
+          <PowerIcon size={40} />
         </Button>
       </div>
       <SearchInput inputClassName="py-6 rounded-full" />

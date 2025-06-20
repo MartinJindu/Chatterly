@@ -1,6 +1,5 @@
 // components/auth/AuthLayout.tsx
 import Image from "next/image";
-import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
 import Logo from "../sidebar-components/Logo";
 
@@ -41,7 +40,7 @@ export default function AuthLayout({ children, heading }: AuthLayoutProps) {
           textClassName="-ml-2 text-teal-300"
         />
         <div className="w-full text-center max-w-md space-y-4">
-          <h2 className="text-2xl font-bold">{heading}</h2>
+          <h2 className="text-sm font-bold md:hidden">{heading}</h2>
           {children}
         </div>
       </div>

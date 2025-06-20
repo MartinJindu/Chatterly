@@ -11,10 +11,17 @@ import { useAppStore } from "@/contextStore/AppContext";
 type Props = {
   inputClassName?: string;
 };
+type User = {
+  avatar_url: string | null;
+  bio: string | null;
+  created_at: string | null;
+  id: string;
+  name: string;
+};
 
 export default function SearchInput({ inputClassName }: Props) {
   const [name, setName] = useState<string>("");
-  const [modalData, setModalData] = useState<any[] | null>(null);
+  const [modalData, setModalData] = useState<User[] | null>(null);
   const [showModal, setShowModal] = useState(false);
   const { searchUser } = useAppStore();
 

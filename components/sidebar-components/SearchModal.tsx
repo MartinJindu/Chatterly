@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef } from "react";
 
 type User = {
   avatar_url: string | null;
@@ -19,7 +18,7 @@ type Props = {
 };
 
 export default function SearchModal({ users, onClose }: Props) {
-  const modalRef = useRef<HTMLDivElement>(null);
+  // const modalRef = useRef<HTMLDivElement>(null);
   // close modal by tapping outside the modal
   // useEffect(() => {
   //   function handleClickOutside(event: MouseEvent) {

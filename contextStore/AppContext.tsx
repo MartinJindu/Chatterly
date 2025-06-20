@@ -6,10 +6,10 @@ import {
   ReactNode,
   useEffect,
   useMemo,
+  useCallback,
 } from "react";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
-import sodium from "libsodium-wrappers";
 import createClient from "@/lib/supabase/client";
 import { Database } from "@/lib/supabase/database.types";
 
@@ -24,11 +24,6 @@ type SearchUser =
     }[]
   | null;
 
-type UserKey = {
-  publicKey: Uint8Array;
-  privateKey: Uint8Array;
-};
-
 type PresenceState = Record<
   string,
   { userId: string; online: boolean; presence_ref: string }[]
@@ -37,14 +32,12 @@ type PresenceState = Record<
 interface StoreState {
   user: User | null;
   loading: boolean;
-  keys: UserKey | null;
   supabase: SupabaseClient<Database>;
   loginWithGoogle: (redirectTo?: string) => Promise<void>;
   checkSession: () => Promise<void>;
   signOut: () => Promise<void>;
   searchUser: (query: string) => Promise<SearchUser>;
-  sendMessage: (receiverId: string, content: string) => Promise<void>;
-  // fetchKeys: () => Promise<void>;
+
   isUserOnline: (userId: string) => boolean;
 }
 
@@ -56,7 +49,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [presenceState, setPresenceState] = useState<PresenceState>({});
-  const [keys, setKeys] = useState<UserKey | null>(null);
 
   const supabase = createClient();
 
@@ -158,7 +150,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
-    setKeys(null);
     redirect("/login");
   };
 
@@ -178,72 +169,33 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return data;
   };
 
-  const sendMessage = async (receiverId: string, content: string) => {};
-
   // to get users that are online
-  const isUserOnline = (userId: string): boolean => {
-    const userPresence = presenceState[userId];
-    return !!userPresence && userPresence[0]?.online;
-  };
-
-  // const fetchKeys = async () => {
-  //   if (!user || keys) return;
-
-  //   const { data, error } = await supabase
-  //     .from("user_keys")
-  //     .select("public_key, encrypted_private_key, key_nonce")
-  //     .eq("id", user.id)
-  //     .single();
-
-  //   if (error) {
-  //     console.error("Error fetching keys:", error);
-  //     return;
-  //   }
-
-  //   await sodium.ready;
-
-  //   const publicKey = sodium.from_base64(data.public_key);
-  //   const encrypted_private_key = sodium.from_base64(
-  //     data.encrypted_private_key
-  //   );
-  //   const nonce = sodium.from_base64(data.key_nonce);
-  //   const encryptionKey = sodium.crypto_generichash(32, user.id);
-
-  //   const decryptedPrivateKey = sodium.crypto_secretbox_open_easy(
-  //     encrypted_private_key,
-  //     nonce,
-  //     encryptionKey
-  //   );
-
-  //   setKeys({
-  //     publicKey,
-  //     privateKey: decryptedPrivateKey,
-  //   });
-  // };
+  const isUserOnline = useCallback(
+    (userId: string): boolean => {
+      const userPresence = presenceState[userId];
+      return !!userPresence && userPresence[0]?.online;
+    },
+    [presenceState]
+  );
 
   const value: StoreState = useMemo(
     () => ({
       user,
       loading,
-      keys,
       supabase,
       loginWithGoogle,
       signOut,
       checkSession,
       searchUser,
-      sendMessage,
-      // fetchKeys,
       isUserOnline,
     }),
     [
       user,
       loading,
-      keys,
       loginWithGoogle,
       signOut,
       checkSession,
       searchUser,
-      // fetchKeys,
       isUserOnline,
     ]
   );
