@@ -39,8 +39,6 @@ git clone https://github.com/MartinJindu/chatterly.git
 cd chatterly
 ```
 
-````
-
 ### 2. Install dependencies
 
 ```bash
@@ -127,4 +125,7 @@ MIT License
 - [Supabase](https://supabase.com/)
 - [Next.js](https://nextjs.org/)
 - [Tailwind CSS](https://tailwindcss.com/)
-````
+
+```
+
+```
