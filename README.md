@@ -1,4 +1,4 @@
-**Chatterly**, built with **Next.js** and **Supabase**:
+![Chatterly Logo](public/logo.png)
 
 ---
 
@@ -125,7 +125,3 @@ MIT License
 - [Supabase](https://supabase.com/)
 - [Next.js](https://nextjs.org/)
 - [Tailwind CSS](https://tailwindcss.com/)
-
-```
-
-```
