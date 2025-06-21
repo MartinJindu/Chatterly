@@ -15,9 +15,79 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const metadataInfo = {
+  name: "Chatterly",
+  title: "Chat app",
+  description:
+    "Chatterly is a modern, full-stack chat application built with Next.js and Supabase. It enables users to sign in using Google authentication and chat with other users in real-time.",
+  url: process.env.NEXT_PUBLIC_URL,
+  author: "Chijindu Okpalanweze",
+  image: `${process.env.NEXT_PUBLIC_URL}/opengraph-image.png`,
+  twitterHandle: "@MartinJindu",
+  keywords: [
+    "chatterly",
+    "chat app",
+    "Supabase",
+    "real-time",
+    "sql",
+    "full stack developer",
+    "next.js developer",
+    "frontend developer",
+    "backend developer",
+    "Chijindu Okpalanweze",
+  ],
+};
 export const metadata: Metadata = {
-  title: "Chatterly",
-  description: "Connect. Communicate. Collaborate.",
+  title: {
+    default: `${metadataInfo.name} | ${metadataInfo.title}`,
+    template: `%s | ${metadataInfo.name}`,
+  },
+  description: metadataInfo.description,
+
+  authors: [
+    {
+      name: metadataInfo.author,
+      url: "https://okpalanweze-chijindu.vercel.app/",
+    },
+  ],
+  creator: metadataInfo.author,
+
+  keywords: metadataInfo.keywords,
+  publisher: metadataInfo.author,
+  applicationName: metadataInfo.name,
+
+  // Canonical URL
+  metadataBase: new URL(metadataInfo.url as string),
+  alternates: {
+    canonical: "/",
+  },
+
+  // Open Graph metadata for social sharing
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: metadataInfo.url,
+    title: `${metadataInfo.name} | ${metadataInfo.title}`,
+    description: metadataInfo.description,
+    siteName: `${metadataInfo.name} | ${metadataInfo.title}`,
+    images: [
+      {
+        url: metadataInfo.image,
+        width: 2508,
+        height: 1792,
+        alt: `${metadataInfo.name} - ${metadataInfo.title}`,
+      },
+    ],
+  },
+
+  // Twitter card metadata
+  twitter: {
+    card: "summary_large_image",
+    title: `${metadataInfo.name} | ${metadataInfo.title}`,
+    description: metadataInfo.description,
+    creator: metadataInfo.twitterHandle,
+    images: [metadataInfo.image],
+  },
 };
 
 export default function RootLayout({
